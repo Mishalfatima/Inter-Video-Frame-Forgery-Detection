@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="mishal@vivace.kaist.ac.kr">
+    <serverData>
+      <paths name="mishal@vivace.kaist.ac.kr">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/hdd/local/sda/mishal/Inter-video-frame-forgery-detection" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>

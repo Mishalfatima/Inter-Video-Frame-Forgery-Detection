@@ -5,19 +5,15 @@ from datetime import datetime
 import socket
 import os
 import glob
-from tqdm import tqdm
 from read_data import *
 
 import torch
 from tensorboardX import SummaryWriter
 from torch import nn, optim
-from torch.utils.data import DataLoader
 from torch.autograd import Variable
 import torch.nn as nn
 from C3D import *
-#from C3D import SimpleRNN
 
-from dataloader import VideoDataset
 #os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 def train_C3D(args):
@@ -25,7 +21,7 @@ def train_C3D(args):
 
     print("Device being used:", device)
 
-    save_dir_root = "/hdd/local/sda/mishal/CrashCatcher"
+    save_dir_root = "./"
     if args.resume_epoch != 0:
         runs = sorted(glob.glob(os.path.join(save_dir_root, 'run', 'run_*')))
         run_id = int(runs[-1].split('_')[-1]) if runs else 0
@@ -38,7 +34,8 @@ def train_C3D(args):
 
     saveName = args.modelName + '-' + args.dataset
 
-    model = C3D_model(num_classes=2, pretrained=False).to(device)
+    model = C3D_model(num_classes=2).to(device)
+
     train_params = [{'params': get_1x_lr_params(model), 'lr': args.lr},
                     {'params': get_10x_lr_params(model), 'lr': args.lr * 10}]
 
@@ -66,7 +63,6 @@ def train_C3D(args):
     writer = SummaryWriter(log_dir=log_dir)
 
     print('Training model on {} dataset...'.format(args.dataset))
-
 
     train = Dashcam_data(train='train')
 
@@ -96,9 +92,8 @@ def train_C3D(args):
 
                     inputs, labels = dataset.get_next_batch(args.batch_size,args.clip_len)
 
-
                     # move inputs and labels to the device the training is taking place on
-                    inputs = Variable(inputs, requires_grad=True).to(device)
+                    inputs = Variable(inputs).to(device)
                     labels = Variable(labels).to(device)
                     optimizer.zero_grad()
 
@@ -109,12 +104,10 @@ def train_C3D(args):
 
                     loss1 = torch.mean(torch.mean(torch.mean(torch.mean(torch.mean(k,dim = 1),dim = 1),dim= 1),dim= 1),dim=0)
 
-
                     outputs = model(inputs)
-
-
                     probs = nn.Softmax(dim=1)(outputs)
                     preds = torch.max(probs, 1)[1]
+
                     loss = criterion(outputs, labels)
                     loss = loss+loss1
 
@@ -125,41 +118,39 @@ def train_C3D(args):
                         writer.add_scalar('data/train_loss_batch', loss.item(), step)
                         step += 1
 
-
                     loss.backward()
                     optimizer.step()
 
                     running_loss += loss.item() * inputs.size(0)
                     running_corrects += torch.sum(preds == labels.data)
 
-                epoch_loss = (running_loss / im_names)
-                epoch_acc = (running_corrects.item() / im_names)*100
-                if phase == 'train':
-                    writer.add_scalar('data/train_acc_epoch', epoch_acc, epoch)
-                    writer.add_scalar('data/train_loss_epoch', epoch_loss, epoch)
+            epoch_loss = (running_loss / im_names)
+            epoch_acc = (running_corrects.item() / im_names)*100
+            if phase == 'train':
+                writer.add_scalar('data/train_acc_epoch', epoch_acc, epoch)
+                writer.add_scalar('data/train_loss_epoch', epoch_loss, epoch)
 
-
-                print("[{}] Epoch: {}/{} Loss: {} Acc: {}".format(phase, epoch + 1, args.epochs, epoch_loss, epoch_acc))
-                stop_time = timeit.default_timer()
-                print("Execution time: " + str(stop_time - start_time) + "\n")
+            print("[{}] Epoch: {}/{} Loss: {} Acc: {}".format(phase, epoch + 1, args.epochs, epoch_loss, epoch_acc))
+            stop_time = timeit.default_timer()
+            print("Execution time: " + str(stop_time - start_time) + "\n")
 
             if epoch % args.snapshot == (args.snapshot - 1):
                 torch.save({
                     'epoch': epoch + 1,
                     'state_dict': model.state_dict(),
                     'opt_dict': optimizer.state_dict(),
-                }, os.path.join(save_dir, 'models', saveName + '_epoch-' + str(epoch) + '.pth.tar'))
+                }, os.path.join('./models', saveName + '_epoch-' + str(epoch) + '.pth.tar'))
                 print("Save model at {}\n".format(
-                    os.path.join(save_dir, 'models', saveName + '_epoch-' + str(epoch) + '.pth.tar')))
+                    os.path.join('./models', saveName + '_epoch-' + str(epoch) + '.pth.tar')))
 
 
     torch.save({
             'epoch': epoch + 1,
             'state_dict': model.state_dict(),
             'opt_dict': optimizer.state_dict(),
-        }, os.path.join(save_dir, 'models', saveName + '_epoch-' + str(epoch) + '.pth.tar'))
+        }, os.path.join('./models', saveName + '_epoch-' + str(epoch) + '.pth.tar'))
     print("Save model at {}\n".format(
-            os.path.join(save_dir, 'models', saveName + '_epoch-' + str(epoch) + '.pth.tar')))
+            os.path.join('./models', saveName + '_epoch-' + str(epoch) + '.pth.tar')))
     writer.close()
 
 
@@ -169,8 +160,8 @@ def test_C3D(args):
     FN=0
     FP=0
     device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-    model = C3D_model(num_classes=2, pretrained=False).to(device)
-    checkpoint = torch.load("/hdd/local/sda/mishal/CrashCatcher/run/run_92/models/C3D-dashcam_epoch-24.pth.tar")
+    model = C3D_model(num_classes=2).to(device)
+    checkpoint = torch.load("./models/C3D-dashcam_epoch-24.pth.tar")
     model.load_state_dict(checkpoint['state_dict'])
     model.eval()
     start_time = timeit.default_timer()
@@ -238,11 +229,11 @@ def main():
 
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--epochs', type=int, help='epoch number', default=60)
-    argparser.add_argument('--Train', type=bool, default=False)
+    argparser.add_argument('--Train', type=bool, default=True)
     argparser.add_argument('--continue_training', type=bool, default=True)
     argparser.add_argument('--model', type=str, default="checkpoint")
     argparser.add_argument('--lr', type=float, default=1e-3)
-    argparser.add_argument('--batch_size', type=int, default=10)
+    argparser.add_argument('--batch_size', type=int, default=2)
     argparser.add_argument('--clip_len', type=int, default=16)
     argparser.add_argument('--resume_epoch', type=int, default=0)
     argparser.add_argument('--dataset', type=str, default="dashcam")
