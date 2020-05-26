@@ -1,7 +1,7 @@
 # Inter-Video-Frame-Forgery-Detection
 
 Detection of "out-of-place" frames in video sequences using C3D networks.
-More information on my blog: "https://medium.com/@mishalfatima_60399/inter-video-frame-forgery-detection-through-3d-convolutional-networks-1b6476a65"
+More information on my blog: "https://medium.com/@mishalfatima_60399/inter-video-frame-forgery-detection-through-3d-convolutional-networks-1b6476a65414"
 
 # Links
 1. https://github.com/DavideA/c3d-pytorch
